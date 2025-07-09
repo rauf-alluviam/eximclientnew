@@ -1,0 +1,166 @@
+// Updated login.scss
+.login-container {
+  padding: 0;
+  overflow: hidden;
+  height: 100vh;
+  max-height: 100vh;
+}
+
+.login-row {
+  height: 100%;
+  margin: 0;
+  display: flex;
+  min-height: 100vh;
+  max-height: 100vh;
+}
+
+.login-left-col {
+  background-image: url("../assets/images/login-bg.webp") !important;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  padding: 0;
+  flex: 1;
+  min-height: 100vh;
+}
+
+.login-right-col {
+  background-image: url("../assets/images/RightPage.webp");
+  background-position: center;
+  background-size: cover;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0;
+  flex: 1;
+  height: 100vh;
+  max-height: 100vh;
+  overflow-y: auto;
+}
+
+.login-right-col-inner-container {
+  width: 85%;
+  max-width: 450px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.login-input {
+  .MuiInputBase-root {
+    background-color: #fff !important;
+  }
+}
+
+.login-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  width: 100%;
+  flex-shrink: 0;
+  padding: 0.5rem 1rem;
+  box-sizing: border-box;
+  min-height: 60px;
+  max-height: 80px;
+}
+
+// Media Queries for Responsiveness
+@media screen and (max-width: 1200px) {
+  .login-right-col-inner-container {
+    width: 90%;
+    padding: 0.75rem;
+  }
+  
+  .login-footer {
+    padding: 0.5rem;
+    min-height: 50px;
+  }
+}
+
+@media screen and (max-width: 992px) {
+  .login-left-col {
+    display: none;
+  }
+
+  .login-right-col {
+    width: 100%;
+  }
+
+  .login-right-col-inner-container {
+    width: 85%;
+    max-width: 500px;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .login-right-col-inner-container {
+    width: 90%;
+    padding: 0.5rem;
+  }
+
+  .login-footer {
+    flex-direction: column;
+    gap: 0.25rem;
+    text-align: center;
+    padding: 0.5rem;
+    min-height: 80px;
+
+    img {
+      margin: 0.25rem 0;
+      width: 50px !important;
+      max-width: 60px !important;
+    }
+    
+    p {
+      font-size: 0.75rem;
+      margin: 0.1rem 0;
+    }
+  }
+}
+
+@media screen and (max-width: 576px) {
+  .login-right-col {
+    padding: 0;
+  }
+
+  .login-right-col-inner-container {
+    width: 95%;
+    padding: 0.5rem;
+  }
+
+  .login-footer {
+    img {
+      width: 45px !important;
+      max-width: 50px !important;
+    }
+
+    p {
+      font-size: 0.7rem;
+    }
+  }
+}
+
+@media screen and (max-height: 600px) {
+  .login-footer {
+    min-height: 40px;
+    padding: 0.25rem;
+    
+    img {
+      width: 40px !important;
+      max-width: 45px !important;
+    }
+    
+    p {
+      font-size: 0.65rem;
+    }
+  }
+  
+  .login-right-col-inner-container {
+    padding: 0.25rem;
+  }
+}

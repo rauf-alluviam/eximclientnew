@@ -1,0 +1,104 @@
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, Paper, Button, List, ListItem, ListItemText, Alert } from '@mui/material';
+import { getUserAssignedModules, forceRefreshUserModules, onUserDataRefresh } from '../utils/moduleAccess';
+
+/**
+ * Debug component to test module assignment synchronization
+ * This component shows the current user's assigned modules and allows manual refresh
+ */
+const ModuleDebugger = () => {
+  const [modules, setModules] = useState([]);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [userData, setUserData] = useState(null);
+
+  const loadModules = () => {
+    const currentModules = getUserAssignedModules();
+    const currentUserData = localStorage.getItem("exim_user");
+    
+    setModules(currentModules);
+    setUserData(currentUserData ? JSON.parse(currentUserData) : null);
+    
+    console.log('🔍 Debug - Current modules:', currentModules);
+    console.log('🔍 Debug - User data:', currentUserData);
+  };
+
+  useEffect(() => {
+    loadModules();
+  }, [refreshKey]);
+
+  useEffect(() => {
+    const cleanup = onUserDataRefresh(() => {
+      console.log('🔄 Debug - User data refreshed event received');
+      setRefreshKey(prev => prev + 1);
+    });
+
+    return cleanup;
+  }, []);
+
+  const handleManualRefresh = async () => {
+    console.log('🔄 Debug - Manual refresh triggered');
+    const success = await forceRefreshUserModules();
+    console.log('🔄 Debug - Refresh result:', success);
+    if (success) {
+      loadModules();
+    }
+  };
+
+  return (
+    <Paper sx={{ p: 2, m: 2 }}>
+      <Typography variant="h6" gutterBottom>
+        Module Assignment Debugger
+      </Typography>
+      
+      <Alert severity="info" sx={{ mb: 2 }}>
+        This component shows the current user's assigned modules and updates in real-time
+      </Alert>
+
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="subtitle1">
+          Current User: {userData?.name || userData?.data?.user?.name || 'Not found'}
+        </Typography>
+        <Typography variant="subtitle2" color="text.secondary">
+          IE Code: {userData?.ie_code_no || userData?.data?.user?.ie_code_no || 'Not found'}
+        </Typography>
+      </Box>
+
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="subtitle1">
+          Assigned Modules ({modules.length}):
+        </Typography>
+        {modules.length > 0 ? (
+          <List dense>
+            {modules.map((module, index) => (
+              <ListItem key={index}>
+                <ListItemText
+                  primary={module}
+                  secondary={`Index: ${index}`}
+                />
+              </ListItem>
+            ))}
+          </List>
+        ) : (
+          <Typography color="text.secondary">No modules assigned</Typography>
+        )}
+      </Box>
+
+      <Box sx={{ display: 'flex', gap: 2 }}>
+        <Button variant="outlined" onClick={loadModules}>
+          Reload from localStorage
+        </Button>
+        <Button variant="contained" onClick={handleManualRefresh}>
+          Force Refresh from Server
+        </Button>
+      </Box>
+
+      <Box sx={{ mt: 2 }}>
+        <Typography variant="caption" color="text.secondary">
+          Refresh Key: {refreshKey} (increments when data changes)
+        </Typography>
+      </Box>
+    </Paper>
+  );
+};
+
+export default ModuleDebugger;

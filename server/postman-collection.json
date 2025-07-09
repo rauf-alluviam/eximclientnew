@@ -1,0 +1,449 @@
+{
+  "info": {
+    "name": "Customs Management API",
+    "description": "A collection of API endpoints for customs management system",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "description": "Customer authentication endpoints",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"ie_code_no\": \"AAJFE5766G\",\n    \"password\": \"766G@AAJF\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:9001/api/login",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "9001",
+              "path": ["api", "login"]
+            },
+            "description": "Login with IE code and password"
+          },
+          "response": []
+        },
+        {
+          "name": "Register Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"ie_code_no\": \"AAJFE5766G\",\n    \"pan_number\": \"AAJFE5766G\",\n    \"name\": \"Customer Name\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:9001/api/register",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "9001",
+              "path": ["api", "register"]
+            },
+            "description": "Register a new customer"
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"ie_code_no\": \"AAJFE5766G\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:9001/api/forgot-password",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "9001",
+              "path": ["api", "forgot-password"]
+            },
+            "description": "Reset password by IE code"
+          },
+          "response": []
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"currentPassword\": \"766G@AAJF\",\n    \"newPassword\": \"NewPassword123!\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:9001/api/change-password",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "9001",
+              "path": ["api", "change-password"]
+            },
+            "description": "Change customer password (requires authentication)"
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:9001/api/logout",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "9001",
+              "path": ["api", "logout"]
+            },
+            "description": "Logout (client-side token removal)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Jobs",
+      "description": "Job management endpoints",
+      "item": [
+        {
+          "name": "Get Importer Job Counts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:9001/api/get-importer-jobs/:importerURL/:year",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "9001",
+              "path": ["api", "get-importer-jobs", ":importerURL", ":year"],
+              "variable": [
+                {
+                  "key": "importerURL",
+                  "value": "company_name",
+                  "description": "Formatted name of the importer"
+                },
+                {
+                  "key": "year",
+                  "value": "2023",
+                  "description": "Year for job counts"
+                }
+              ]
+            },
+            "description": "Get job counts for a specific importer and year"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Job By Number",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:9001/api/get-job/:year/:jobNo",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "9001",
+              "path": ["api", "get-job", ":year", ":jobNo"],
+              "variable": [
+                {
+                  "key": "year",
+                  "value": "2023",
+                  "description": "Year of the job"
+                },
+                {
+                  "key": "jobNo",
+                  "value": "10001",
+                  "description": "Job number"
+                }
+              ]
+            },
+            "description": "Get job details by job number and year"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Jobs By Status And Importer",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:9001/api/:year/jobs/:status/:detailedStatus/:importer",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "9001",
+              "path": [
+                "api",
+                ":year",
+                "jobs",
+                ":status",
+                ":detailedStatus",
+                ":importer"
+              ],
+              "variable": [
+                {
+                  "key": "year",
+                  "value": "2023",
+                  "description": "Year of the jobs"
+                },
+                {
+                  "key": "status",
+                  "value": "Pending",
+                  "description": "Job status (Pending, Completed, Cancelled)"
+                },
+                {
+                  "key": "detailedStatus",
+                  "value": "all",
+                  "description": "Detailed status filter"
+                },
+                {
+                  "key": "importer",
+                  "value": "company_name",
+                  "description": "Importer name"
+                }
+              ]
+            },
+            "description": "Get jobs by status and importer"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Jobs Overview",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:9001/api/get-jobs-overview/:year",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "9001",
+              "path": ["api", "get-jobs-overview", ":year"],
+              "variable": [
+                {
+                  "key": "year",
+                  "value": "2023",
+                  "description": "Year for jobs overview"
+                }
+              ]
+            },
+            "description": "Get overview of jobs for a specific year"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Available Years",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:9001/api/get-years",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "9001",
+              "path": ["api", "get-years"]
+            },
+            "description": "Get list of available years with job data"
+          },
+          "response": []
+        },
+        {
+          "name": "Delivery Addresses",
+          "item": [
+            {
+              "name": "Get All Delivery Addresses",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
+                ],
+                "url": {
+                  "raw": "http://localhost:9001/api/delivery-address",
+                  "host": ["localhost"],
+                  "port": "9001",
+                  "path": ["api", "delivery-address"]
+                }
+              }
+            },
+            {
+              "name": "Get Addresses by IE Code",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
+                ],
+                "url": {
+                  "raw": "http://localhost:9001/api/delivery-address/ie-code/:ieCode",
+                  "host": ["localhost"],
+                  "port": "9001",
+                  "path": ["api", "delivery-address", "ie-code", ":ieCode"]
+                }
+              }
+            },
+            {
+              "name": "Search Delivery Addresses",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
+                ],
+                "url": {
+                  "raw": "http://localhost:9001/api/delivery-address/search/:query",
+                  "host": ["localhost"],
+                  "port": "9001",
+                  "path": ["api", "delivery-address", "search", ":query"]
+                }
+              }
+            },
+            {
+              "name": "Get Addresses by Postal Code",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
+                ],
+                "url": {
+                  "raw": "http://localhost:9001/api/delivery-address/postal-code/:postalCode",
+                  "host": ["localhost"],
+                  "port": "9001",
+                  "path": [
+                    "api",
+                    "delivery-address",
+                    "postal-code",
+                    ":postalCode"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Fetch Address from OpenStreetMap",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
+                ],
+                "url": {
+                  "raw": "http://localhost:9001/api/delivery-address/lookup/:postalCode?country=India",
+                  "host": ["localhost"],
+                  "port": "9001",
+                  "path": ["api", "delivery-address", "lookup", ":postalCode"],
+                  "query": [{ "key": "country", "value": "India" }]
+                }
+              }
+            },
+            {
+              "name": "Create Delivery Address",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"address\": \"123 Industrial Area\",\n  \"postal_code\": \"110011\",\n  \"city\": \"Delhi\",\n  \"district\": \"New Delhi\",\n  \"state\": \"Delhi\",\n  \"country\": \"India\",\n  \"ieCode\": \"AAJFE5766G\"\n}"
+                },
+                "url": {
+                  "raw": "http://localhost:9001/api/delivery-address",
+                  "host": ["localhost"],
+                  "port": "9001",
+                  "path": ["api", "delivery-address"]
+                }
+              }
+            },
+            {
+              "name": "Update Container Delivery Address in Job",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
+                ],
+                "url": {
+                  "raw": "http://localhost:9001/api/delivery-address/job/:jobId/container/:containerId/address/:addressId",
+                  "host": ["localhost"],
+                  "port": "9001",
+                  "path": [
+                    "api",
+                    "delivery-address",
+                    "job",
+                    ":jobId",
+                    "container",
+                    ":containerId",
+                    "address",
+                    ":addressId"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+
+  "variable": [
+    {
+      "key": "token",
+      "value": "YOUR_JWT_TOKEN",
+      "description": "JWT authentication token from login response"
+    }
+  ]
+}

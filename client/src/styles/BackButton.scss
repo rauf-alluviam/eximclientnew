@@ -1,0 +1,31 @@
+.back-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: none;
+  background-color: transparent;
+  color: #333;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+  margin: 16px 0;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  svg {
+    stroke-width: 2px;
+  }
+
+  span {
+    line-height: 1;
+  }
+}

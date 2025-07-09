@@ -1,0 +1,92 @@
+.jobs-overview {
+  .jobs-overview-item {
+    flex: 1;
+    padding: 0;
+  }
+
+  .jobs-overview-item-inner {
+    display: flex;
+    align-items: center;
+    box-shadow: 2px 2px 50px 10px rgba(0, 0, 0, 0.05);
+    margin: 10px;
+    padding: 10px;
+    background-color: #fff;
+
+    h3 {
+      display: block;
+      color: #6e6e6f;
+    }
+    p {
+      margin-bottom: 0;
+    }
+  }
+
+  // Mobile responsive styles
+  @media (max-width: 768px) {
+    .jobs-overview-item-inner {
+      margin: 5px;
+      padding: 8px;
+      
+      h3 {
+        font-size: 0.875rem;
+      }
+    }
+  }
+}
+
+// Mobile-first responsive breakpoints
+@media (max-width: 480px) {
+  .MuiBox-root {
+    padding: 4px !important;
+  }
+  
+  .MuiTab-root {
+    min-width: auto !important;
+    padding: 6px 8px !important;
+    font-size: 0.75rem !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .MuiButton-root {
+    font-size: 0.75rem !important;
+    padding: 4px 8px !important;
+  }
+  
+  .MuiTypography-h6 {
+    font-size: 1rem !important;
+  }
+}
+
+.bg-yellow {
+  background-color: yellow;
+}
+
+.bg-orange {
+  background-color: orange;
+}
+
+.bg-green {
+  background-color: green;
+}
+// .css-ynlzys-MuiTableCell-root {
+//   display: flex;
+//   align-items: center;
+//   justify-content: center;
+// }
+// .css-1mpnnre-MuiTableRow-root {
+//   // align-items: center;
+//   // justify-content: center;
+//   justify-content: center !important;
+//  align-items: center !important;
+//  text-align: center !important;
+//   background-color: aqua !important;
+
+//   // justify-content: center;
+// }
+
+.css-c8wlay {
+  justify-content: center !important;
+  align-items: center !important;
+  text-align: center !important;
+}

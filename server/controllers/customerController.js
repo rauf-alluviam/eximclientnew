@@ -1,0 +1,878 @@
+import CustomerModel from "../models/customerModel.js";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
+import mongoose from "mongoose";
+import JobModel from "../models/jobModel.js";
+import CustomerKycModel from "../models/customerKycModel.js";
+import ActivityLogModel from "../models/ActivityLogModel.js";
+import { createSendTokens } from "../middlewares/authMiddleware.js";
+// Comment out missing email utility
+// import { sendEmail } from "../utils/email.js";
+
+// Environment variables
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "12h";
+
+//* LOGIN
+
+export const login = async (req, res) => {
+  try {
+    const { ie_code_no, password } = req.body;
+
+    console.log(`Login attempt with IE code: ${ie_code_no}`);
+
+    // Validate input
+    if (!ie_code_no || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide IE code and password",
+      });
+    }
+
+    // Step 1: First check if customer already exists
+    let customer = await CustomerModel.findOne({ ie_code_no });
+
+    // If customer doesn't exist, we need to set it up
+    if (!customer) {
+      console.log(
+        `Customer with IE code ${ie_code_no} not found, attempting to create`
+      );
+
+      // Find the job with this IE code
+      const job = await JobModel.findOne({ ie_code_no });
+      if (!job) {
+        console.log(`Job with IE code ${ie_code_no} not found`);
+        return res.status(401).json({
+          success: false,
+          message: "Invalid credentials",
+        });
+      }
+
+      // Find matching CustomerKYC entry
+      const customerKYC = await CustomerKycModel.findOne({
+        $or: [{ iec_no: ie_code_no }, { name_of_individual: job.importer }],
+      });
+
+      if (!customerKYC) {
+        console.log(
+          `CustomerKYC for ${ie_code_no} or ${job.importer} not found`
+        );
+        return res.status(401).json({
+          success: false,
+          message: "Invalid credentials",
+        });
+      }
+
+      // Create new customer
+      customer = new CustomerModel({
+        name: job.importer,
+        ie_code_id: job._id,
+        ie_code_no: ie_code_no,
+        pan_id: customerKYC._id,
+        pan_number: customerKYC.pan_no,
+        isActive: true,
+      });
+
+      // Generate and set initial password
+      const generatedPassword = customer.generatePassword();
+      console.log(`Generated initial password for new customer`);
+
+      // Check if provided password matches the generated one
+      if (password !== generatedPassword) {
+        console.log(`Password mismatch for new customer`);
+        return res.status(401).json({
+          success: false,
+          message: "Invalid credentials",
+        });
+      }      // Since the password matches, save the customer with plain text password
+      // The pre-save hook will hash it automatically
+      customer.password = password;
+      customer.initialPassword = password; // Store plain text for admin viewing
+      customer.lastLogin = new Date();
+      await customer.save();
+
+      console.log(`New customer created with IE code: ${ie_code_no}`);    } else {
+      // Existing customer - verify password using the schema method
+      console.log(`Customer found, verifying password`);      console.log(`Current stored password hash starts with: ${customer.password.substring(0, 10)}...`);
+      console.log(`Customer password_changed status: ${customer.password_changed}`);
+      
+      const isPasswordCorrect = await customer.comparePassword(password);
+      console.log(`Password comparison result: ${isPasswordCorrect}`);
+
+      if (!isPasswordCorrect) {
+        // Only allow generated password login if the user hasn't changed their password
+        if (!customer.password_changed) {
+          // If password doesn't match stored hash, check if it matches the generated one
+          // This handles cases where customer exists but password might have been reset
+          const generatedPassword = customer.generatePassword();
+          console.log(`Generated password for comparison: ${generatedPassword}`);
+          console.log(`Provided password: ${password}`);
+
+          if (password === generatedPassword) {
+            // If matches generated password, update the stored hash
+            console.log(
+              `Password matches generated password pattern, updating hash`
+            );
+            const oldPasswordHash = customer.password;
+            customer.password = password; // Set plain text, pre-save hook will hash it
+            customer.initialPassword = password; // Store for admin viewing
+            customer.password_changed = false; // Mark as default password
+            
+            console.log(`Before save - password field: ${customer.password}`);
+            await customer.save();
+            console.log(`After save - new password hash starts with: ${customer.password.substring(0, 10)}...`);
+            console.log(`Old hash: ${oldPasswordHash.substring(0, 10)}..., New hash: ${customer.password.substring(0, 10)}...`);
+          } else {
+            console.log(`Password verification failed - neither stored hash nor generated password match`);
+            
+            // Log failed login attempt
+            try {
+              const ipAddress = req.ip || req.connection.remoteAddress || 'Unknown';
+              const userAgent = req.headers['user-agent'] || 'Unknown';
+              
+              await ActivityLogModel.create({
+                user_id: customer._id,
+                user_email: customer.email || `${customer.ie_code_no}@example.com`,
+                user_name: customer.name,
+                ie_code_no: customer.ie_code_no,
+                activity_type: 'failed_login',
+                description: 'Failed login attempt - password verification failed',
+                ip_address: ipAddress,
+                user_agent: userAgent,
+                severity: 'medium',
+                is_suspicious: true,
+                details: {
+                  reason: 'password_verification_failed',
+                  ie_code_no: ie_code_no
+                }
+              });
+            } catch (activityError) {
+              console.error('Error logging failed login activity:', activityError);
+            }
+            
+            return res.status(401).json({
+              success: false,
+              message: "Invalid credentials",
+            });
+          }        } else {
+          // User has changed their password, only accept the stored password
+          console.log(`User has custom password, but provided password doesn't match stored hash`);
+          
+          // Log failed login attempt
+          try {
+            const ipAddress = req.ip || req.connection.remoteAddress || 'Unknown';
+            const userAgent = req.headers['user-agent'] || 'Unknown';
+            
+            await ActivityLogModel.create({
+              user_id: customer._id,
+              user_email: customer.email || `${customer.ie_code_no}@example.com`,
+              user_name: customer.name,
+              ie_code_no: customer.ie_code_no,
+              activity_type: 'failed_login',
+              description: 'Failed login attempt - incorrect password for changed account',
+              ip_address: ipAddress,
+              user_agent: userAgent,
+              severity: 'high',
+              is_suspicious: true,
+              details: {
+                reason: 'incorrect_password_changed_account',
+                ie_code_no: ie_code_no
+              }
+            });
+          } catch (activityError) {
+            console.error('Error logging failed login activity:', activityError);
+          }
+          
+          return res.status(401).json({
+            success: false,
+            message: "Invalid credentials",
+          });
+        }
+      }    // Update last login
+    customer.lastLogin = new Date();
+    await customer.save();
+    console.log(`Login timestamp updated for customer`);
+
+    // Log successful login activity
+    try {
+      const ipAddress = req.ip || req.connection.remoteAddress || 'Unknown';
+      const userAgent = req.headers['user-agent'] || 'Unknown';
+      
+      await ActivityLogModel.create({
+        user_id: customer._id,
+        user_email: customer.email || `${customer.ie_code_no}@example.com`,
+        user_name: customer.name,
+        ie_code_no: customer.ie_code_no,
+        activity_type: 'login',
+        description: 'User logged in successfully',
+        ip_address: ipAddress,
+        user_agent: userAgent,
+        severity: 'low',
+        details: {
+          login_method: 'password',
+          success: true
+        }
+      });
+    } catch (activityError) {
+      console.error('Error logging login activity:', activityError);
+      // Continue with login even if activity logging fails
+    }
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: customer._id, ie_code_no: customer.ie_code_no },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
+    );
+
+    createSendTokens(customer, 200, res, true);
+
+    // Send successful response
+    // res.status(200).json({
+    //   success: true,
+    //   //token, // Added token back to response
+    //   name: customer.name,
+    //   id: customer._id,
+    //   ie_code_no: customer.ie_code_no,
+    //   lastLogin: customer.lastLogin,
+    // });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred during login",
+      error: error.message,
+    });
+  }
+};
+
+// Logout controller
+
+export const logout = async (req, res) => {
+  try {
+    // Try to log logout activity and update last logout time if user info is available
+    if (req.user || req.body.user_id) {
+      try {
+        const userId = req.user?.id || req.body.user_id;
+        const customer = await CustomerModel.findById(userId);
+        
+        if (customer) {
+          // Update last logout time
+          customer.lastLogout = new Date();
+          await customer.save();
+          
+          const ipAddress = req.ip || req.connection.remoteAddress || 'Unknown';
+          const userAgent = req.headers['user-agent'] || 'Unknown';
+          
+          await ActivityLogModel.create({
+            user_id: customer._id,
+            user_email: customer.email || `${customer.ie_code_no}@example.com`,
+            user_name: customer.name,
+            ie_code_no: customer.ie_code_no,
+            activity_type: 'logout',
+            description: 'User logged out successfully',
+            ip_address: ipAddress,
+            user_agent: userAgent,
+            severity: 'low',
+            details: {
+              logout_method: 'manual',
+              logout_time: new Date().toISOString()
+            }
+          });
+        }
+      } catch (activityError) {
+        console.error('Error logging logout activity:', activityError);
+        // Continue with logout even if activity logging fails
+      }
+    }
+
+    // Clear authentication cookies
+    res.clearCookie('access_token');
+    res.clearCookie('refresh_token');
+
+    res.status(200).json({
+      success: true,
+      message: "Logged out successfully",
+    });
+  } catch (error) {
+    console.error("Logout error:", error);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred during logout",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Forgot password controller
+ * Regenerates the password based on IE code and PAN number
+ */
+export const forgotPassword = async (req, res) => {
+  try {
+    const { ie_code_no } = req.body;
+
+    console.log(`Forgot password attempt for IE code: ${ie_code_no}`);
+
+    // Validate input
+    if (!ie_code_no) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide IE code",
+      });
+    }
+
+    // Find customer by IE code
+    const customer = await CustomerModel.findOne({ ie_code_no });
+
+    if (!customer) {
+      console.log(`Customer with IE code ${ie_code_no} not found`);
+
+      // Try to create a new customer if possible (similar to login flow)
+      const job = await JobModel.findOne({ ie_code_no });
+      if (!job) {
+        console.log(`Job with IE code ${ie_code_no} not found`);
+        return res.status(404).json({
+          success: false,
+          message: "Customer not found",
+        });
+      }
+
+      // Find matching CustomerKYC entry
+      const customerKYC = await CustomerKycModel.findOne({
+        $or: [{ iec_no: ie_code_no }, { name_of_individual: job.importer }],
+      });
+
+      if (!customerKYC) {
+        console.log(
+          `CustomerKYC for ${ie_code_no} or ${job.importer} not found`
+        );
+        return res.status(404).json({
+          success: false,
+          message: "Customer not found",
+        });
+      }
+
+      // Create new customer
+      const newCustomer = new CustomerModel({
+        name: job.importer,
+        ie_code_id: job._id,
+        ie_code_no: ie_code_no,
+        pan_id: customerKYC._id,
+        pan_number: customerKYC.pan_no,
+        isActive: true,
+      });      // Generate and set initial password
+      const generatedPassword = newCustomer.generatePassword();
+      newCustomer.password = generatedPassword; // Set plain text, pre-save hook will hash it
+      await newCustomer.save();
+
+      console.log(`New customer created with IE code: ${ie_code_no}`);
+
+      return res.status(200).json({
+        success: true,
+        message: "Account created successfully",
+        temporaryPassword: generatedPassword,
+      });
+    }
+
+    // Generate a new password using the method in the schema
+    const newPassword = customer.generatePassword();
+
+    // Set the plain text password - the pre-save hook will hash it
+    customer.password = newPassword;
+    customer.initialPassword = newPassword; // Store for admin viewing
+    customer.password_changed = false; // Reset to default password
+    await customer.save();
+
+    console.log(`Password reset successfully for IE code: ${ie_code_no}`);
+
+    // Always return password since email functionality is commented out
+    res.status(200).json({
+      success: true,
+      message: "Password reset successfully.",
+      temporaryPassword: newPassword,
+    });
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred during password reset",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Register/Create Customer controller
+ * Creates a new customer with IE code and PAN details
+ */
+export const registerCustomer = async (req, res) => {
+  try {
+    const { ie_code_no, pan_number, name } = req.body;
+
+    console.log(`Register customer attempt with IE code: ${ie_code_no}`);
+
+    // Validate required fields
+    if (!ie_code_no || !pan_number) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide IE code and PAN number",
+      });
+    }
+
+    // Check if customer already exists
+    const existingCustomer = await CustomerModel.findOne({ ie_code_no });
+    if (existingCustomer) {
+      console.log(`Customer with IE code ${ie_code_no} already exists`);
+      return res.status(400).json({
+        success: false,
+        message: "Customer with this IE code already exists",
+      });
+    }
+
+    // Find related Job and KYC records
+    const job = await JobModel.findOne({ ie_code_no });
+    if (!job) {
+      console.log(`Job with IE code ${ie_code_no} not found`);
+      return res.status(400).json({
+        success: false,
+        message: "No job found with this IE code",
+      });
+    }
+
+    // Find matching CustomerKYC entry
+    const customerKYC = await CustomerKycModel.findOne({
+      $or: [
+        { iec_no: ie_code_no },
+        { pan_no: pan_number },
+        { name_of_individual: name || job.importer },
+      ],
+    });
+
+    if (!customerKYC) {
+      console.log(`CustomerKYC for ${ie_code_no} not found`);
+      return res.status(400).json({
+        success: false,
+        message: "No KYC record found with provided details",
+      });
+    }
+
+    // Create new customer
+    const customer = new CustomerModel({
+      name: name || job.importer,
+      ie_code_id: job._id,
+      ie_code_no,
+      pan_id: customerKYC._id,
+      pan_number: pan_number || customerKYC.pan_no,
+      isActive: true,
+    });    // Generate and set password
+    const generatedPassword = customer.generatePassword();
+    customer.password = generatedPassword; // Set plain text, pre-save hook will hash it
+    customer.initialPassword = generatedPassword; // Store plain text for admin viewing
+
+    await customer.save();
+
+    console.log(`New customer registered with IE code: ${ie_code_no}`);
+
+    res.status(201).json({
+      success: true,
+      message: "Customer registered successfully",
+      customer: {
+        id: customer._id,
+        name: customer.name,
+        ie_code_no: customer.ie_code_no,
+        isActive: customer.isActive,
+        initialPassword: generatedPassword,
+      },
+    });
+  } catch (error) {
+    console.error("Customer registration error:", error);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred during customer registration",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Middleware to protect routes
+ * Verifies JWT token and sets req.user
+ */
+export const protect = async (req, res, next) => {
+  try {
+    // Get token from Authorization header
+    let token;
+    if (
+      req.headers.authorization &&
+      req.headers.authorization.startsWith("Bearer")
+    ) {
+      token = req.headers.authorization.split(" ")[1];
+    }
+
+    if (!token) {
+      console.log("No token provided for protected route");
+      return res.status(401).json({
+        success: false,
+        message: "Not authorized to access this route",
+      });
+    }
+
+    // Verify token
+    const decoded = jwt.verify(token, JWT_SECRET);
+    console.log(`Token verified for user ID: ${decoded.id}`);
+
+    // Find customer by ID
+    const customer = await CustomerModel.findById(decoded.id);
+
+    if (!customer) {
+      console.log(`Customer with ID ${decoded.id} not found`);
+      return res.status(401).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Check if customer is active
+    if (!customer.isActive) {
+      console.log(`Customer account is inactive: ${decoded.id}`);
+      return res.status(401).json({
+        success: false,
+        message: "Account is inactive",
+      });
+    }
+
+    // Set user in request
+    req.user = {
+      id: customer._id,
+      ie_code_no: customer.ie_code_no,
+      name: customer.name,
+    };
+
+    next();
+  } catch (error) {
+    console.error("Auth middleware error:", error);
+    return res.status(401).json({
+      success: false,
+      message: "Not authorized to access this route",
+      error: error.message,
+    });
+  }
+};
+
+export const postColumnOrder = async (req, res) => {
+  try {
+    const { userId, columnOrder } = req.body;
+
+    if (!userId || !columnOrder) {
+      return res.status(400).json({ error: "Missing userId or columnOrder" });
+    }
+
+    await CustomerModel.findByIdAndUpdate(userId, { columnOrder });
+
+    res.json({ message: "Column order saved successfully" });
+  } catch (err) {
+    console.error("Error saving column order:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+export const getColumnOrder = async (req, res) => {
+  try {
+    const { userId } = req.query;
+    console.log("User ID received:", userId);
+    
+    if (!userId) return res.status(400).json({ error: "Missing userId" });
+
+    // First try to find by ID
+    let user = await CustomerModel.findById(userId);
+    //console.log("User found by ID:", user ? "Yes" : "No");
+    
+    // If not found by ID, try to find by name or IE code (fallback for localStorage mismatch)
+    if (!user) {
+     // console.log("Attempting to find user by alternative methods...");
+      
+      // Try to find any user (since there's only 1 in collection based on debug info)
+      user = await CustomerModel.findOne({});
+      //console.log("Found any user:", user ? "Yes" : "No");
+      
+      // if (user) {
+      //   console.log(`Found user: ${user.name} with ID: ${user._id}`);
+      //   console.log("Note: User ID mismatch detected. Consider updating localStorage.");
+      // }
+    }
+    
+    if (!user) {
+      return res.status(404).json({ 
+        error: "User not found",
+        suggestion: "Please logout and login again to refresh your session"
+      });
+    }
+   
+    res.json({ 
+      columnOrder: user.columnOrder || [],
+      userInfo: {
+        id: user._id,
+        name: user.name,
+        ie_code_no: user.ie_code_no
+      }
+    });
+  } catch (err) {
+    console.error("Error in getColumnOrder:", err);
+    res.status(500).json({ error: "Server error", details: err.message });
+  }
+};
+
+/**
+ * Get CustomerKYC data for registration dropdown
+ */
+export const getCustomerKycList = async (req, res) => {
+  try {
+    console.log("Fetching CustomerKYC data for registration dropdown");
+
+    // Find all CustomerKYC records with required fields
+    const kycRecords = await CustomerKycModel.find(
+      {
+        name_of_individual: { $exists: true, $ne: null, $ne: "" },
+        iec_no: { $exists: true, $ne: null, $ne: "" },
+        pan_no: { $exists: true, $ne: null, $ne: "" },
+      },
+      {
+        _id: 1,
+        name_of_individual: 1,
+        iec_no: 1,
+        pan_no: 1,
+        status: 1,
+      }
+    ).lean();
+
+    if (!kycRecords || kycRecords.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No CustomerKYC records found",
+      });
+    }
+
+    // Filter out records where customers already exist
+    const existingCustomers = await CustomerModel.find(
+      {},
+      { ie_code_no: 1 }
+    ).lean();
+    
+    const existingIeCodes = new Set(existingCustomers.map(c => c.ie_code_no));
+
+    // Filter out already registered customers
+    const availableRecords = kycRecords.filter(
+      record => !existingIeCodes.has(record.iec_no)
+    );
+
+    console.log(`Found ${kycRecords.length} KYC records, ${availableRecords.length} available for registration`);
+
+    res.status(200).json({
+      success: true,
+      message: "CustomerKYC data fetched successfully",
+      data: availableRecords,
+    });
+  } catch (error) {
+    console.error("Error fetching CustomerKYC data:", error);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while fetching CustomerKYC data",
+      error: error.message,
+    });
+  }
+};
+
+// Get all registered customers with their passwords (admin function)
+export const getRegisteredCustomers = async (req, res) => {
+  try {
+    const customers = await CustomerModel.find(
+      {},
+      {
+        _id: 1,
+        ie_code_no: 1,
+        pan_number: 1,
+        name: 1,
+        initialPassword: 1,
+        password_changed: 1,
+        created_at: 1,
+        isActive: 1,
+        assignedModules: 1,
+      }
+    ).sort({ created_at: -1 }).lean();
+
+    console.log(`Found ${customers.length} registered customers`);
+
+    res.status(200).json({
+      success: true,
+      message: "Registered customers fetched successfully",
+      data: customers,
+    });
+  } catch (error) {
+    console.error("Error fetching registered customers:", error);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while fetching registered customers",
+      error: error.message,
+    });
+  }
+};
+
+// Update customer password (admin function)
+export const updateCustomerPassword = async (req, res) => {
+  try {
+    const { customerId } = req.params;
+    const { newPassword } = req.body;
+
+    console.log(`\n=== PASSWORD UPDATE API CALLED ===`);
+    console.log(`Customer ID: ${customerId}`);
+    console.log(`New Password: ${newPassword}`);
+    console.log(`Request body:`, req.body);
+
+    if (!newPassword || newPassword.length < 6) {
+      console.log(`❌ Validation failed: Password too short`);
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 6 characters long",
+      });
+    }
+
+    // Find the customer first
+    const customer = await CustomerModel.findById(customerId);
+    
+    if (!customer) {
+      console.log(`❌ Customer not found with ID: ${customerId}`);
+      return res.status(404).json({
+        success: false,
+        message: "Customer not found",
+      });
+    }
+
+    console.log(`✅ Found customer: ${customer.ie_code_no}`);
+    console.log(`   Current password hash: ${customer.password.substring(0, 20)}...`);
+    console.log(`   Current initialPassword: ${customer.initialPassword}`);
+    console.log(`   Current password_changed: ${customer.password_changed}`);
+
+    // Update the customer fields - do NOT hash the password here as the pre-save hook will handle it
+    customer.password = newPassword; // Set plain text password, pre-save hook will hash it
+    customer.initialPassword = newPassword; // Store plain text for admin viewing
+    customer.password_changed = true;
+
+    console.log(`   Setting password_changed to: ${customer.password_changed}`);
+    console.log(`   About to save customer...`);
+
+    // Save the customer - this will trigger the pre-save hook to hash the password
+    const updatedCustomer = await customer.save();
+
+    console.log(`✅ Password updated successfully for customer: ${updatedCustomer.ie_code_no}`);
+    console.log(`   New password hash: ${updatedCustomer.password.substring(0, 20)}...`);
+    console.log(`   New initialPassword: ${updatedCustomer.initialPassword}`);
+    console.log(`   New password_changed: ${updatedCustomer.password_changed}`);
+    console.log(`=== PASSWORD UPDATE API COMPLETE ===\n`);
+
+    res.status(200).json({
+      success: true,
+      message: "Password updated successfully",
+      data: {
+        customer: {
+          id: updatedCustomer._id,
+          ie_code_no: updatedCustomer.ie_code_no,
+          name: updatedCustomer.name,
+          password_changed: updatedCustomer.password_changed,
+        },
+        newPassword: newPassword,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Error updating customer password:", error);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while updating password",
+      error: error.message,
+    });
+  }
+};
+
+//* SESSION VALIDATION
+export const validateSession = async (req, res) => {
+  try {
+    // At this point, if the middleware passed, the user is valid
+    // req.user is set by the authenticate middleware
+    if (req.user) {
+      return res.status(200).json({
+        success: true,
+        message: "Session valid",
+        user: {
+          id: req.user.id,
+          name: req.user.name,
+          ie_code_no: req.user.ie_code_no,
+          isActive: req.user.isActive,
+          assignedModules: req.user.assignedModules || []
+        }
+      });
+    } else {
+      return res.status(401).json({
+        success: false,
+        message: "Session invalid"
+      });
+    }
+  } catch (error) {
+    console.error("Session validation error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error during session validation"
+    });
+  }
+};
+
+/**
+ * Get inactive customers - customers who are in customerKyc but not in customer collection
+ */
+export const getInactiveCustomers = async (req, res) => {
+  try {
+    // Get all approved KYC records
+    const approvedKycRecords = await CustomerKycModel.find({ 
+      approval: 'Approved' 
+    }).select('ie_code_no pan_number name_of_individual approval createdAt updatedAt');
+
+    // Get all registered customers (customer collection)
+    const registeredCustomers = await CustomerModel.find({}).select('ie_code_no');
+    
+    // Create a set of registered IE codes for efficient lookup
+    const registeredIeCodes = new Set(registeredCustomers.map(customer => customer.ie_code_no));
+
+    // Filter KYC records to find those not in customer collection
+    const inactiveCustomers = approvedKycRecords.filter(kyc => 
+      !registeredIeCodes.has(kyc.ie_code_no)
+    );
+
+    // Format the response
+    const formattedInactiveCustomers = inactiveCustomers.map(kyc => ({
+      id: kyc._id,
+      ie_code_no: kyc.ie_code_no,
+      pan_number: kyc.pan_number,
+      name: kyc.name_of_individual,
+      approval: kyc.approval,
+      kycApprovedAt: kyc.updatedAt,
+      kycCreatedAt: kyc.createdAt,
+      status: 'Inactive',
+      isRegistered: false
+    }));
+
+    res.status(200).json({
+      success: true,
+      message: `Found ${formattedInactiveCustomers.length} inactive customers`,
+      data: formattedInactiveCustomers,
+      count: formattedInactiveCustomers.length
+    });
+
+  } catch (error) {
+    console.error("Error fetching inactive customers:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch inactive customers",
+      error: error.message
+    });
+  }
+};
