@@ -9,7 +9,7 @@ import { useSuperAdminApi } from '../../hooks/useSuperAdminApi';
 // Import modern theme and components
 import { modernTheme } from '../../styles/modernTheme';
 import ModernSidebar from './ModernSidebar';
-import LoadingScreen from './LoadingScreen';
+import LoadingScreen from "../LoadingScreen.jsx";
 import SessionManager from '../SessionManager';
 
 const SuperAdminLayout = () => {

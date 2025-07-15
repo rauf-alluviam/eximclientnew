@@ -6,14 +6,14 @@ import { ThemeProvider } from '@mui/material/styles';
 // Import dashboard components
 import ModernDashboardOverview from './ModernDashboardOverview';
 import ModernCustomerManagement from './ModernCustomerManagement';
-import ModuleManagement from './ModuleManagement';
-import SystemAnalytics from './SystemAnalytics';
+import ModuleManagement from "./ModuleManagement.jsx";
+import SystemAnalytics from './SystemAnalytics.jsx';
 import UserActivity from './UserActivity';
 import ColumnPermissionsManagement from './ColumnPermissionsManagement';
-import SessionManager from '../SessionManager';
+import SessionManager from "../SessionManager.jsx";
 import { modernTheme } from '../../styles/modernTheme';
 import ModernSidebar from './ModernSidebar';
-import LoadingScreen from './LoadingScreen';
+import LoadingScreen from "../LoadingScreen.jsx";
 
 const SuperAdminDashboard = () => {
   // Get context data from the layout
