@@ -57,7 +57,7 @@ import {
   Info,
 } from '@mui/icons-material';
 import { useSuperAdminApi } from '../../hooks/useSuperAdminApi';
-import { forceRefreshUserModules } from '../../utils/moduleAccess';
+// import { forceRefreshUserModules } from '../../utils/moduleAccess';
 
 const CustomerDetailView = ({ 
   open, 
@@ -184,7 +184,7 @@ const CustomerDetailView = ({
         const currentUserId = userData.id || userData.data?.user?.id;
         if (currentUserId === customer._id) {
           console.log('🔄 Module assignment changed for current user, refreshing...');
-          await forceRefreshUserModules();
+          // await forceRefreshUserModules();
         }
       }
       
