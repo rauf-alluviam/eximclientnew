@@ -321,7 +321,7 @@ function HomePage() {
     return filteredModules;
   }, [moduleRefreshKey, user?.role]);
 
-  const handleCardClick = (path, isExternal = false, isLocked = false) => {
+  const handleCardClick = async (path, isExternal = false, isLocked = false, moduleName = '') => {
     if (isLocked) {
       // Show a message or modal for locked modules
       return;
@@ -481,7 +481,7 @@ function HomePage() {
               {modules.filter(module => ["Import DSR", "CostIQ", "SnapCheck"].includes(module.name)).map((module, index) => (
                 <StyledCard 
                   key={index}
-                  onClick={() => handleCardClick(module.path, module.isExternal, module.isLocked)}
+                  onClick={() => handleCardClick(module.path, module.isExternal, module.isLocked, module.name)}
                   sx={{
                     ...(module.category === "beta" ? { 
                       "&:before": {
@@ -600,7 +600,7 @@ function HomePage() {
               {modules.filter(module => ["QR Locker", "Task Flow AI", "E-Lock"].includes(module.name)).map((module, index) => (
                 <StyledCard 
                   key={`second-row-${index}`}
-                  onClick={() => handleCardClick(module.path, module.isExternal, module.isLocked)}
+                  onClick={() => handleCardClick(module.path, module.isExternal, module.isLocked, module.name)}
                   sx={{
                     ...(module.category === "beta" ? { 
                       "&:before": {
@@ -740,7 +740,7 @@ function HomePage() {
               {modules.filter(module => ["Intendor Management System", "DocSure"].includes(module.name)).map((module, index) => (
                 <StyledCard 
                   key={`third-row-${index}`}
-                  onClick={() => handleCardClick(module.path, module.isExternal, module.isLocked)}
+                  onClick={() => handleCardClick(module.path, module.isExternal, module.isLocked, module.name)}
                   sx={{
                     ...(module.category === "coming-soon" ? {
                       opacity: 0.7,
@@ -874,7 +874,7 @@ function HomePage() {
                 {modules.filter(module => module.category === "admin").map((module, index) => (
                   <StyledCard 
                     key={index}
-                    onClick={() => handleCardClick(module.path, module.isExternal, module.isLocked)}
+                    onClick={() => handleCardClick(module.path, module.isExternal, module.isLocked, module.name)}
                     sx={{ 
                       ...(module.isLocked ? {
                         opacity: 0.6,
