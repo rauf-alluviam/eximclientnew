@@ -8,7 +8,7 @@ import ChecklistCell from "../components/ChecklistCell"; // Adjust the path as n
 // import NetWeightCell from "../components/Net weight/NetWeightCell"; // Adjust the path as needed
 import DoPlanningToggle from "../components/DoPlanningToggle"; // Adjust the path as needed
 import EditableTransporterCell from "../components/EditableTransporterCell";
-
+import BENumberCell from"../components/BEnumberCell.jsx";
 // Custom hook to manage job columns configuration with centered content
 function useCustomerJobList() {
   const [containerModalOpen, setContainerModalOpen] = useState(false);
@@ -190,112 +190,118 @@ function useCustomerJobList() {
   },
 },
       
-      {
-        accessorKey: "be_no",
-        header: "BE Number & Date",
-        size: 150,
-        Cell: ({ cell }) => {
-          const beNumber = cell?.getValue()?.toString();
-          const rawBeDate = cell.row.original.be_date;
-          const beDate = formatDate(rawBeDate);
-          const { 
-            processed_be_attachment = [], 
-            ooc_copies = [], 
-            gate_pass_copies = [] 
-          } = cell.row.original;
+      // {
+      //   accessorKey: "be_no",
+      //   header: "BE Number & Date",
+      //   size: 150,
+      //   Cell: ({ cell }) => {
+      //     const beNumber = cell?.getValue()?.toString();
+      //     const rawBeDate = cell.row.original.be_date;
+      //     const beDate = formatDate(rawBeDate);
+      //     const { 
+      //       processed_be_attachment = [], 
+      //       ooc_copies = [], 
+      //       gate_pass_copies = [] 
+      //     } = cell.row.original;
 
-          // Combine all documents with labels
-          const allDocuments = [
-            ...processed_be_attachment.map((url, index) => ({
-              url,
-              name: `Processed BE ${index + 1}`,
-              type: 'processed_be'
-            })),
-            ...ooc_copies.map((url, index) => ({
-              url,
-              name: `OOC Copy ${index + 1}`,
-              type: 'ooc'
-            })),
-            ...gate_pass_copies.map((url, index) => ({
-              url,
-              name: `Gate Pass ${index + 1}`,
-              type: 'gate_pass'
-            }))
-          ];
+      //     // Combine all documents with labels
+      //     const allDocuments = [
+      //       ...processed_be_attachment.map((url, index) => ({
+      //         url,
+      //         name: `Processed BE ${index + 1}`,
+      //         type: 'processed_be'
+      //       })),
+      //       ...ooc_copies.map((url, index) => ({
+      //         url,
+      //         name: `OOC Copy ${index + 1}`,
+      //         type: 'ooc'
+      //       })),
+      //       ...gate_pass_copies.map((url, index) => ({
+      //         url,
+      //         name: `Gate Pass ${index + 1}`,
+      //         type: 'gate_pass'
+      //       }))
+      //     ];
 
-          return (
-            <div style={centeredCellStyle}>
-              {beNumber && (
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "4px",
-                    alignItems: "center",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px",
-                    }}
-                  >
-                    <a
-                      href={`https://enquiry.icegate.gov.in/enquiryatices/beTrackIces?BE_NO=${beNumber}&BE_DT=${beDate}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {beNumber}
-                    </a>
-                    <IconButton
-                      size="small"
-                      onClick={(event) => handleCopy(event, beNumber)}
-                      sx={{ padding: "2px" }}
-                    >
-                      <abbr title="Copy BE Number">
-                        <ContentCopyIcon fontSize="inherit" />
-                      </abbr>
-                    </IconButton>
-                  </div>
-                  <span>{beDate}</span>
+      //     return (
+      //       <div style={centeredCellStyle}>
+      //         {beNumber && (
+      //           <div
+      //             style={{
+      //               display: "flex",
+      //               flexDirection: "column",
+      //               gap: "4px",
+      //               alignItems: "center",
+      //             }}
+      //           >
+      //             <div
+      //               style={{
+      //                 display: "flex",
+      //                 alignItems: "center",
+      //                 gap: "4px",
+      //               }}
+      //             >
+      //               <a
+      //                 href={`https://enquiry.icegate.gov.in/enquiryatices/beTrackIces?BE_NO=${beNumber}&BE_DT=${beDate}`}
+      //                 target="_blank"
+      //                 rel="noopener noreferrer"
+      //               >
+      //                 {beNumber}
+      //               </a>
+      //               <IconButton
+      //                 size="small"
+      //                 onClick={(event) => handleCopy(event, beNumber)}
+      //                 sx={{ padding: "2px" }}
+      //               >
+      //                 <abbr title="Copy BE Number">
+      //                   <ContentCopyIcon fontSize="inherit" />
+      //                 </abbr>
+      //               </IconButton>
+      //             </div>
+      //             <span>{beDate}</span>
                   
-                  {/* Documents section - matching esanchit format */}
-                  <div style={{ marginTop: "8px", width: "100%" }}>
-                    {allDocuments.length > 0 ? (
-                      allDocuments.map((doc, index) => (
-                        <div key={index} style={{ marginBottom: "4px" }}>
-                          {doc.url ? (
-                            <a
-                              href={doc.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={{ 
-                                fontSize: "0.9rem",
-                                color: "#007bff",
-                                textDecoration: "underline"
-                              }}
-                            >
-                              {doc.name}
-                            </a>
-                          ) : (
-                            <span style={{ fontSize: "0.8em", color: "#999" }}>
-                              {doc.name}
-                            </span>
-                          )}
-                        </div>
-                      ))
-                    ) : (
-                      <span style={{ fontSize: "0.8em", color: "#999" }}>
-                        No documents
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        },
+      //             {/* Documents section - matching esanchit format */}
+      //             <div style={{ marginTop: "8px", width: "100%" }}>
+      //               {allDocuments.length > 0 ? (
+      //                 allDocuments.map((doc, index) => (
+      //                   <div key={index} style={{ marginBottom: "4px" }}>
+      //                     {doc.url ? (
+      //                       <a
+      //                         href={doc.url}
+      //                         target="_blank"
+      //                         rel="noopener noreferrer"
+      //                         style={{ 
+      //                           fontSize: "0.9rem",
+      //                           color: "#007bff",
+      //                           textDecoration: "underline"
+      //                         }}
+      //                       >
+      //                         {doc.name}
+      //                       </a>
+      //                     ) : (
+      //                       <span style={{ fontSize: "0.8em", color: "#999" }}>
+      //                         {doc.name}
+      //                       </span>
+      //                     )}
+      //                   </div>
+      //                 ))
+      //               ) : (
+      //                 <span style={{ fontSize: "0.8em", color: "#999" }}>
+      //                   No documents
+      //                 </span>
+      //               )}
+      //             </div>
+      //           </div>
+      //         )}
+      //       </div>
+      //     );
+      //   },
+      // },
+       {
+        accessorKey: "be_no",
+        header: "BE Number and Date",
+        size: 200,
+        Cell: ({ cell }) => <BENumberCell cell={cell} copyFn={handleCopy} />,
       },
      {
   accessorKey: "checklist",
@@ -526,41 +532,76 @@ function useCustomerJobList() {
 
     
 
-      {
-        // Group 4: Container
-        accessorKey: "container_details",
-        header: "Container",
-        size: 200,
-        Cell: ({ cell }) => {
-          const containerNos = cell.row.original.container_nos;
-          return (
-            <div style={centeredCellStyle}>
-              {containerNos?.map((container, id) => (
-                <div key={id} className="mb-2 text-center w-full">
-                  <span
-                    onClick={() => handleContainerClick(container)}
+     {
+  // Group 4: Container
+  accessorKey: "container_details",
+  header: "Container",
+  size: 200,
+  Cell: ({ cell }) => {
+    const containerNos = cell.row.original.container_nos;
+
+    // Helper function to get color based on shortage amount
+    const getShortageColor = (shortage) => {
+      if (shortage < 0) {
+        return "#e02251"; // Red for shortage
+      } else {
+        return "#2e7d32"; // Green for no shortage
+      }
+    };
+
+    const getShortageText = (shortage) => {
+      if (shortage < 0) {
+        return `Shortage: -${Math.abs(shortage).toFixed(2)} kg`;
+      } else if (shortage > 0) {
+        return `Excess: +${Math.abs(shortage).toFixed(2)} kg`;
+      } else {
+        return "No shortage/excess";
+      }
+    };
+
+    return (
+      <React.Fragment>
+        <div style={centeredCellStyle}>
+          {containerNos?.map((container, id) => {
+            const weightShortage = parseFloat(container.weight_shortage) || 0;
+            const containerColor = getShortageColor(weightShortage);
+            const tooltipText = getShortageText(weightShortage);
+
+            return (
+              <div key={id} className="mb-2 text-center w-full" style={{ marginBottom: "4px" }}>
+                <Tooltip title={tooltipText} arrow placement="top">
+                  <a
+                    
                     style={{
-                      cursor: 'pointer',
-                      color: '#1976d2',
-                      textDecoration: 'underline',
-                      marginRight: '4px'
+                      color: containerColor,
+                      fontWeight: "bold",
+                      textDecoration: "none",
+                      cursor: "pointer",
+                      marginRight: "6px",
                     }}
+                    onClick={() => handleContainerClick(container)}
+                    onMouseOver={(e) => (e.currentTarget.style.textDecoration = "underline")}
+                    onMouseOut={(e) => (e.currentTarget.style.textDecoration = "none")}
                   >
                     {container.container_number}
-                  </span>
+                  </a>
+                </Tooltip>
+
+                <span style={{ marginLeft: "4px", marginRight: "8px" }}>
                   | "{container.size}"
-                  <IconButton
-                    size="small"
-                    onClick={(event) =>
-                      handleCopy(event, container.container_number)
-                    }
-                    sx={{ ml: 0.5 }}
-                  >
-                    <abbr title="Copy Container Number">
+                </span>
+
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <Tooltip title="Copy Container Number" arrow>
+                    <IconButton
+                      size="small"
+                      onClick={(event) => handleCopy(event, container.container_number)}
+                    >
                       <ContentCopyIcon fontSize="inherit" />
-                    </abbr>
-                  </IconButton>
-                  <Tooltip title="Assign Transporter">
+                    </IconButton>
+                  </Tooltip>
+
+                  <Tooltip title="Assign Transporter" arrow>
                     <IconButton
                       size="small"
                       onClick={() => handleTransporterClick(container, cell.row.original._id)}
@@ -569,83 +610,102 @@ function useCustomerJobList() {
                       <LocalShippingIcon fontSize="small" color="action" />
                     </IconButton>
                   </Tooltip>
-                  
-                </div>
-              ))}
-            </div>
-          );
-        },
-      },
-        {
-  // Weight Shortage Column
-  accessorKey: "weight_shortage",
-  header: "Weight Shortage/Excess",
-  size: 150,
-  Cell: ({ cell }) => {
-    const { container_nos = [] } = cell.row.original;
-    
-    // Get weight shortage from container_nos array
-    const getWeightShortageData = () => {
-      if (container_nos.length === 0) return null;
-      
-      // Return array of container weight shortages for individual display
-      return container_nos.map(container => ({
-        container_number: container.container_number,
-        weight_shortage: parseFloat(container.weight_shortage) || 0
-      }));
-    };
-    
-    const containerShortages = getWeightShortageData();
-    
-    // Helper function to get color based on shortage amount
-    const getShortageColor = (shortage) => {
-      if (shortage > 0) {
-        return "#e02251"; // Red for shortage
-      } else if (shortage === 0) {
-        return "#2e7d32"; // Green for no shortage
-      } else {
-        return "black"; // Blue for excess
-      }
-    };
-
-    return (
-      <div style={centeredCellStyle}>
-        {containerShortages?.map((containerData, index) => (
-          <div key={index} className="mb-2 text-center w-full">
-            {/* <span style={{
-              fontSize: '0.9em',
-              color: 'black',
-              marginRight: '4px'
-            }}>
-              {containerData.container_number}
-            </span> */}
-            
-            <span style={{
-  color: getShortageColor(containerData.weight_shortage),
-  fontWeight: 'bold',
-  marginLeft: '4px',
-  marginRight: '4px'
-}}>
-  {containerData.weight_shortage > 0 ? '+' : containerData.weight_shortage < 0 ? '-' : ''}
-  {Math.abs(containerData.weight_shortage).toFixed(2)} kg
-</span>
-            <IconButton
-              size="small"
-              onClick={(event) =>
-                handleCopy(event, `${containerData.container_number}: ${containerData.weight_shortage} kg`)
-              }
-              className="ml-1"
-            >
-              <abbr title="Copy Weight Shortage Info">
-                <ScaleIcon fontSize="inherit" />
-              </abbr>
-            </IconButton>
-          </div>
-        ))}
-      </div>
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </React.Fragment>
     );
   },
 },
+
+           {
+        accessorKey: "container_numbers",
+        header: "Container Numbers and Size",
+        size: 200,
+        Cell: ({ cell }) => {
+          const containerNos = cell.row.original.container_nos;
+          const jobData = cell.row.original;
+
+          // Helper function to get color based on shortage amount
+          const getShortageColor = (shortage) => {
+            if (shortage < 0) {
+              return "#e02251"; // Red for shortage
+            } else {
+              return "#2e7d32"; // Green for no shortage
+            }
+          };
+
+          // Helper function to get shortage text for tooltip
+          const getShortageText = (shortage) => {
+            if (shortage < 0) {
+              return `Shortage: -${Math.abs(shortage).toFixed(2)} kg`;
+            } else if (shortage > 0) {
+              return `Excess: +${Math.abs(shortage).toFixed(2)} kg`;
+            } else {
+              return "No shortage/excess";
+            }
+          };
+
+          return (
+            <React.Fragment>
+              {containerNos?.map((container, id) => {
+                const weightShortage =
+                  parseFloat(container.weight_shortage) || 0;
+                const containerColor = getShortageColor(weightShortage);
+                const tooltipText = getShortageText(weightShortage);
+
+                return (
+                  <div key={id} style={{ marginBottom: "4px" }}>
+                    <Tooltip title={tooltipText} arrow placement="top">
+                      <a
+                        href={`https://www.ldb.co.in/ldb/containersearch/39/${container.container_number}/1726651147706`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          color: containerColor,
+                          fontWeight: "bold",
+                          textDecoration: "none",
+                          cursor: "pointer",
+                        }}
+                        onMouseOver={(e) =>
+                          (e.target.style.textDecoration = "underline")
+                        }
+                        onMouseOut={(e) =>
+                          (e.target.style.textDecoration = "none")
+                        }
+                      >
+                        {container.container_number}
+                      </a>
+                    </Tooltip>
+                    | "{container.size}"
+                    <div
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
+                      }}
+                    >
+                      <Tooltip title="Copy Container Number" arrow>
+                        <IconButton
+                          size="small"
+                          onClick={(event) =>
+                            handleCopy(event, container.container_number)
+                          }
+                        >
+                          <ContentCopyIcon fontSize="inherit" />
+                        </IconButton>
+                      </Tooltip>
+            
+                    </div>
+                  </div>
+                );
+              })}
+            </React.Fragment>
+          );
+        },
+      },
       {
         // Group 5: Movement Timeline
         accessorKey: "movement_timeline",
