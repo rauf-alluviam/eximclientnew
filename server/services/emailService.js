@@ -1,30 +1,34 @@
 // services/emailService.js
-import { createTransport } from 'nodemailer';
+import { createTransport } from "nodemailer";
 
 const createEmailTransporter = () => {
   return createTransport({
     host: process.env.MAIL_SERVER,
     port: process.env.MAIL_PORT,
-    secure: process.env.MAIL_SSL_TLS === 'true',
+    secure: process.env.MAIL_SSL_TLS === "true",
     auth: {
       user: process.env.MAIL_USERNAME,
-      pass: process.env.MAIL_PASSWORD
+      pass: process.env.MAIL_PASSWORD,
     },
     tls: {
-      rejectUnauthorized: process.env.MAIL_STARTTLS === 'true'
-    }
+      rejectUnauthorized: process.env.MAIL_STARTTLS === "true",
+    },
   });
 };
 
-export const sendVerificationEmail = async (email, name, emailVerificationToken) => {
+export const sendVerificationEmail = async (
+  email,
+  name,
+  emailVerificationToken
+) => {
   const transporter = createEmailTransporter();
-  
+
   const verificationUrl = `${process.env.CLIENT_URL}/verify-email/${emailVerificationToken}`;
-  
+
   const mailOptions = {
     from: `${process.env.MAIL_FROM_NAME} <${process.env.MAIL_FROM}>`,
     to: email,
-    subject: 'Verify Your Email Address',
+    subject: "Verify Your Email Address",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2>Welcome ${name}!</h2>
@@ -60,29 +64,28 @@ export const sendVerificationEmail = async (email, name, emailVerificationToken)
       This link will expire in 24 hours.
       
       If you didn't create an account, please ignore this email.
-    `
+    `,
   };
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log('Verification email sent successfully:', info.messageId);
+    console.log("Verification email sent successfully:", info.messageId);
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('Error sending verification email:', error);
+    console.error("Error sending verification email:", error);
     throw error;
   }
 };
 
-
 export const sendPasswordResetEmail = async (email, name, token) => {
   const transporter = createEmailTransporter();
 
-  const resetUrl = `${process.env.CLIENT_URL}/forgot-password/${token}`;
+  const resetUrl = `${process.env.CLIENT_URL}/reset-password/${token}`;
 
   const mailOptions = {
     from: `${process.env.MAIL_FROM_NAME} <${process.env.MAIL_FROM}>`,
     to: email,
-    subject: 'Password Reset Request',
+    subject: "Password Reset Request",
     html: `
       <div>
         <h2>Hello ${name},</h2>
@@ -91,50 +94,51 @@ export const sendPasswordResetEmail = async (email, name, token) => {
         <p>If you did not request this, please ignore this email.</p>
       </div>
     `,
-    text: `Hello ${name},\n\nYou requested a password reset. Use the following link to reset your password:\n${resetUrl}\n\nIf you did not request this, please ignore this email.`
+    text: `Hello ${name},\n\nYou requested a password reset. Use the following link to reset your password:\n${resetUrl}\n\nIf you did not request this, please ignore this email.`,
   };
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log('Password reset email sent:', info.messageId);
+    console.log("Password reset email sent:", info.messageId);
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('Failed to send password reset email:', error);
+    console.error("Failed to send password reset email:", error);
     throw error;
   }
 };
-
 
 // Add this enhanced version to your emailService.js
 
 export const sendReminderEmail = async (email, name, document) => {
   const transporter = createEmailTransporter();
-  
+
   const daysUntilExpiration = Math.ceil(
     (new Date(document.expirationDate) - new Date()) / (1000 * 60 * 60 * 24)
   );
-  
+
   // Format expiration date nicely
-  const expirationDateFormatted = new Date(document.expirationDate).toLocaleDateString('en-IN', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    timeZone: 'Asia/Kolkata'
+  const expirationDateFormatted = new Date(
+    document.expirationDate
+  ).toLocaleDateString("en-IN", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: "Asia/Kolkata",
   });
-  
+
   // Determine urgency level
-  let urgencyClass = '';
-  let urgencyMessage = '';
-  
+  let urgencyClass = "";
+  let urgencyMessage = "";
+
   if (daysUntilExpiration <= 7) {
-    urgencyClass = 'urgent';
-    urgencyMessage = '🚨 URGENT: ';
+    urgencyClass = "urgent";
+    urgencyMessage = "🚨 URGENT: ";
   } else if (daysUntilExpiration <= 30) {
-    urgencyClass = 'warning';
-    urgencyMessage = '⚠️ Important: ';
+    urgencyClass = "warning";
+    urgencyMessage = "⚠️ Important: ";
   }
-  
+
   const mailOptions = {
     from: `${process.env.MAIL_FROM_NAME} <${process.env.MAIL_FROM}>`,
     to: email,
@@ -148,11 +152,33 @@ export const sendReminderEmail = async (email, name, document) => {
         
         <p style="font-size: 16px; color: #333;">Hello <strong>${name}</strong>,</p>
         
-        <div style="background: ${urgencyClass === 'urgent' ? '#ffebee' : urgencyClass === 'warning' ? '#fff3e0' : '#e3f2fd'}; 
-                    border-left: 5px solid ${urgencyClass === 'urgent' ? '#f44336' : urgencyClass === 'warning' ? '#ff9800' : '#2196f3'}; 
+        <div style="background: ${
+          urgencyClass === "urgent"
+            ? "#ffebee"
+            : urgencyClass === "warning"
+            ? "#fff3e0"
+            : "#e3f2fd"
+        }; 
+                    border-left: 5px solid ${
+                      urgencyClass === "urgent"
+                        ? "#f44336"
+                        : urgencyClass === "warning"
+                        ? "#ff9800"
+                        : "#2196f3"
+                    }; 
                     padding: 20px; margin: 20px 0; border-radius: 5px;">
           <p style="font-size: 16px; margin: 0; color: #333;">
-            ${urgencyMessage}Your document <strong>"${document.title}"</strong> will expire in <strong style="color: ${urgencyClass === 'urgent' ? '#d32f2f' : urgencyClass === 'warning' ? '#f57c00' : '#1976d2'};">${daysUntilExpiration} day${daysUntilExpiration !== 1 ? 's' : ''}</strong>.
+            ${urgencyMessage}Your document <strong>"${
+      document.title
+    }"</strong> will expire in <strong style="color: ${
+      urgencyClass === "urgent"
+        ? "#d32f2f"
+        : urgencyClass === "warning"
+        ? "#f57c00"
+        : "#1976d2"
+    };">${daysUntilExpiration} day${
+      daysUntilExpiration !== 1 ? "s" : ""
+    }</strong>.
           </p>
         </div>
         
@@ -169,8 +195,16 @@ export const sendReminderEmail = async (email, name, document) => {
             </tr>
             <tr>
               <td style="padding: 8px 0; font-weight: bold; color: #666;">Days Remaining:</td>
-              <td style="padding: 8px 0; color: ${urgencyClass === 'urgent' ? '#d32f2f' : urgencyClass === 'warning' ? '#f57c00' : '#1976d2'}; font-weight: bold;">
-                ${daysUntilExpiration} day${daysUntilExpiration !== 1 ? 's' : ''}
+              <td style="padding: 8px 0; color: ${
+                urgencyClass === "urgent"
+                  ? "#d32f2f"
+                  : urgencyClass === "warning"
+                  ? "#f57c00"
+                  : "#1976d2"
+              }; font-weight: bold;">
+                ${daysUntilExpiration} day${
+      daysUntilExpiration !== 1 ? "s" : ""
+    }
               </td>
             </tr>
           </table>
@@ -196,17 +230,17 @@ export const sendReminderEmail = async (email, name, document) => {
             This is an automated reminder from your document management system.
           </p>
           <p style="color: #999; font-size: 12px; margin: 5px 0;">
-            Sent on ${new Date().toLocaleDateString('en-IN', { 
-              weekday: 'long', 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric',
-              timeZone: 'Asia/Kolkata'
-            })} at ${new Date().toLocaleTimeString('en-IN', { 
-              hour: '2-digit', 
-              minute: '2-digit',
-              timeZone: 'Asia/Kolkata'
-            })} IST
+            Sent on ${new Date().toLocaleDateString("en-IN", {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+              timeZone: "Asia/Kolkata",
+            })} at ${new Date().toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Asia/Kolkata",
+    })} IST
           </p>
           <p style="color: #999; font-size: 12px; margin: 0;">
             Please do not reply to this email.
@@ -219,29 +253,36 @@ export const sendReminderEmail = async (email, name, document) => {
       
       Hello ${name},
       
-      ${urgencyMessage}Your document "${document.title}" will expire in ${daysUntilExpiration} day${daysUntilExpiration !== 1 ? 's' : ''}.
+      ${urgencyMessage}Your document "${
+      document.title
+    }" will expire in ${daysUntilExpiration} day${
+      daysUntilExpiration !== 1 ? "s" : ""
+    }.
       
       Document Details:
       - Document: ${document.title}
       - Expiration Date: ${expirationDateFormatted}
-      - Days Remaining: ${daysUntilExpiration} day${daysUntilExpiration !== 1 ? 's' : ''}
+      - Days Remaining: ${daysUntilExpiration} day${
+      daysUntilExpiration !== 1 ? "s" : ""
+    }
       
       Please renew this document before it expires.
       
       Manage your documents: ${process.env.CLIENT_URL}/profile
       
       This is an automated reminder. Please do not reply.
-    `
+    `,
   };
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log(`✅ Reminder email sent successfully to ${email}:`, info.messageId);
+    console.log(
+      `✅ Reminder email sent successfully to ${email}:`,
+      info.messageId
+    );
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error(`❌ Error sending reminder email to ${email}:`, error);
     throw error;
   }
 };
-
-
